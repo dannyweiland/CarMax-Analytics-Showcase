@@ -2,29 +2,147 @@
 title: "CarMax Analysis"
 author: "Daniel Weiland"
 date: "12/4/2020"
-output: word_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## CarMax Analytics Showcase
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r Carmax Analytics Showcase Setup, message=FALSE, warning=FALSE, include=FALSE}
+#Clear workspace
+rm(list = ls())
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+#Set working directory
+setwd("C:/Users/Danny/Desktop/CarMax-Analytics-Showcase")
 
-```{r cars}
-summary(cars)
+#Import Libraries
+library(dplyr)
+library(ggplot2)
+library(naniar)
+library(corrplot)
+library(cowplot)
+library(randomForest)
+
+
+#Import Dataset
+df1_raw <- read.csv("CaseCompetitionData2021Copy.csv")
+
 ```
 
-## Including Plots
+```{r Data Cleaning, include=FALSE}
 
-You can also embed plots, for example:
+#New Dataset for Cleaning and Analysis
+df1 <- df1_raw
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+#Replacing ? Values with NA
+df1[df1=="?"]<- NA
+
+#Drop Columns 
+df1 <- select(df1, -post_purchase_satisfaction)
+  
+  
+#Omit NA values
+df1 <- na.omit(df1)
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r Customer Research, echo=TRUE}
+#customers by gender
+gender_table <- table(df1$customer_gender)
+gender_table_df <- as.data.frame(gender_table)
+gender_table_df <- rename(gender_table_df, customer_gender = Var1)
+
+
+
+```
+
+```{r Manufacturer Descriptive Statistics, echo=FALSE}
+#Averages
+mean(df1$trade_in)
+mean(df1$vehicle_financing)
+mean(df1$customer_previous_purchase)
+mean(df1$subsequent_purchases)
+
+#Vehicle Sales by Manufacturer
+purchase_make_df <- table(df1$purchase_make)
+purchase_make_df <- as.data.frame(purchase_make_df)
+
+#Dataframe with Top 10 Sales
+top10 <- purchase_make_df %>%
+  top_n(10, Freq) %>%
+  arrange(desc(Freq))
+
+ #Top Ten Manufacturer as a percentage of Sales Quantity
+percent_sales_top_10 <- sum(top10$Freq)/length(df1$purchase_make)
+percent_sales_top_10  
+
+manufacturer_graph <- ggplot(top10, aes(x=reorder(Var1, -Freq), y=Freq)) +
+  geom_bar(stat = "identity") +
+  theme_minimal()
+manufacturer_graph
+```
+
+```{r Post Purchase Satisfaction}
+customer_satisfaction <- df1_raw %>%
+  replace_with_na(list(post_purchase_satisfaction = '?')) %>%
+  mutate(post_purchase_satisfaction = as.numeric(post_purchase_satisfaction))%>%
+  na.omit()
+
+customer_satisfaction_num <- customer_satisfaction[,sapply(customer_satisfaction, is.numeric)]
+
+customer_satisfaction_cor <- cor(customer_satisfaction_num)
+corrplot(customer_satisfaction_cor)
+```
+
+```{r Vehicle Year Preferences}
+vehicle_year_df <- df1
+
+#Create new variable for "year lag", How many years old was the purchased vehicle?
+purchase_year <- 2013
+vehicle_year_df$purchase_vehicle_year_lag <- (purchase_year - vehicle_year_df$purchase_vehicle_year)
+
+#ggplot(data = vehicle_year_df, aes(y = purchase_vehicle_year_lag)) +
+#  geom_boxplot(outlier.shape = NA)
+
+
+#Horrendous code to make the boxplot look better, come back and fix this later
+vehicle_year_boxplot_df <- vehicle_year_df %>%
+  filter(purchase_vehicle_year_lag < 20)
+
+#Probably innaccurate boxplot
+boxplot(vehicle_year_boxplot_df$purchase_vehicle_year_lag)
+
+#Vehicle Purchase count by year chart
+
+
+#Vehicle Purchase county by lag year
+
+
+```
+
+```{r Random Forest}
+
+
+```
+
+```{r Linear Regression}
+ols1 <- lm(subsequent_purchases ~ vehicle_financing + customer_gender, data=df1)
+summary(ols1)
+
+glm1 <- glm(subsequent_purchases ~ vehicle_financing + customer_gender, data=df1)
+summary(glm1)
+
+```
+
+
+
+```{r Logistic Regression}
+
+```
+
+

@@ -1,0 +1,40 @@
+---
+title: "HW 6 Logits"
+author: "Daniel Weiland"
+date: "12/6/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## HW - 6 Logits
+
+```{r Linear Probability Model}
+#Set Working Directory
+setwd("C:/Users/Danny/Desktop/Econometrics")
+
+#Import Dataset
+library(readxl)
+Export8 <- read_excel("8 - Logits.xlsx")
+
+#OLS continuous
+summary (lm(Grade ~ Hours, data=Export8))
+summary (lm(Grade ~ Hours + Econ + SAT, data=Export8))
+
+#OLS with binary
+summary (lm(Pass ~ Hours, data=Export8))
+
+summary (lm(Pass ~ Hours + Econ + SAT, data=Export8))
+
+#Logit with binary
+model1 <-glm(Pass ~ Hours, family=binomial (link='logit'), data=Export8)
+summary(model1)
+
+model2 <-glm(Pass ~ Hours + Econ + SAT, family=binomial (link='logit'), data=Export8)
+summary(model2)
+
+```
+
+
