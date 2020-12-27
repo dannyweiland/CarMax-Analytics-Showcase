@@ -27,6 +27,7 @@ library(naniar)
 library(corrplot)
 library(cowplot)
 library(randomForest)
+library(readxl)
 
 
 #Import Dataset
@@ -45,7 +46,6 @@ df1[df1=="?"]<- NA
 #Drop Columns 
 df1 <- select(df1, -post_purchase_satisfaction)
   
-  
 #Omit NA values
 df1 <- na.omit(df1)
 
@@ -56,6 +56,42 @@ df1 <- na.omit(df1)
 gender_table <- table(df1$customer_gender)
 gender_table_df <- as.data.frame(gender_table)
 gender_table_df <- rename(gender_table_df, customer_gender = Var1)
+
+#Most Common Combination of Age, Income, Gender
+#customer_combo_df <- df1 %>%
+#  select(customer_age, customer_income, customer_gender)
+
+#customer_combo_df_collapsed <- apply(customer_combo_df, 1, paste, collapse='')
+
+#sort(table(customer_combo_df_collapsed), decreasing = T)
+
+
+```
+
+```{r Gender Sementation}
+#Model Purchase Count by Gender
+gender_model_data <- read.csv("CaseCompetitionData2021.csv")
+gender_model_data[is.na(gender_model_data)] = 0
+
+#Remove values with less than 20 to prevent inaccuracies
+gender_model_data <- gender_model_data %>%
+  filter(Total.Gendered > 20)
+
+gender_model_data$Percent.Male <- (gender_model_data$M/gender_model_data$Total.Gendered)
+gender_model_data$Percent.Female <- (gender_model_data$F/gender_model_data$Total.Gendered)
+
+#Make Purchase Cont by Gender
+gender_make_data <- read_excel("CaseCompetitionData2021.1.xlsx", 
+    sheet = "gender_make_data")
+gender_make_data[is.na(gender_make_data)] = 0
+
+#Remove values with less than 20 to prevent inaccuracies
+gender_make_data <- gender_make_data %>%
+  filter(Total.Gendered > 20)
+
+gender_make_data$Percent.Male <- (gender_make_data$M/gender_make_data$Total.Gendered)
+gender_make_data$Percent.Female <- (gender_make_data$F/gender_make_data$Total.Gendered)
+
 
 
 
@@ -82,8 +118,7 @@ percent_sales_top_10 <- sum(top10$Freq)/length(df1$purchase_make)
 percent_sales_top_10  
 
 manufacturer_graph <- ggplot(top10, aes(x=reorder(Var1, -Freq), y=Freq)) +
-  geom_bar(stat = "identity") +
-  theme_minimal()
+  geom_bar(stat = "identity")
 manufacturer_graph
 ```
 
@@ -99,7 +134,7 @@ customer_satisfaction_cor <- cor(customer_satisfaction_num)
 corrplot(customer_satisfaction_cor)
 ```
 
-```{r Vehicle Year Preferences}
+```{r Vehicle Year Preferences: Vehicle LAG, warning=TRUE}
 vehicle_year_df <- df1
 
 #Create new variable for "year lag", How many years old was the purchased vehicle?
@@ -118,31 +153,147 @@ vehicle_year_boxplot_df <- vehicle_year_df %>%
 boxplot(vehicle_year_boxplot_df$purchase_vehicle_year_lag)
 
 #Vehicle Purchase count by year chart
-
+purchase_vehicle_year_plot <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year)) +
+  geom_bar() +
+  xlim(2000, 2014)
+purchase_vehicle_year_plot
 
 #Vehicle Purchase county by lag year
+purchase_vehicle_year_lag_plot <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+  geom_bar() +
+  scale_y_sqrt() +
+  xlim(-1, 15)
+purchase_vehicle_year_lag_plot
+
+
+purchase_vehicle_year_lag_plot <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+  geom_bar(aes(fill = customer_age)) +
+  scale_y_sqrt() +
+  xlim(-1, 15)
+  
+purchase_vehicle_year_lag_plot
+
+#Messing around testing different things
+purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+  geom_bar() +
+  scale_y_sqrt() +
+  xlim(-1, 15) +
+  facet_wrap(~customer_gender)
+purchase_vehicle_year_lag_plot_test
+
+purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+  geom_bar() +
+  scale_y_sqrt() +
+  xlim(-1, 10) +
+  facet_wrap(~purchase_make, scale = "free_y")
+
+purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+  geom_bar() +
+  scale_y_sqrt() +
+  xlim(-1, 15) +
+  facet_wrap(~customer_gender)
+purchase_vehicle_year_lag_plot_test
+
+purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+  geom_bar() +
+  scale_y_sqrt() +
+  xlim(-1, 15) +
+  facet_wrap(~customer_age, scale = "free_y")
+purchase_vehicle_year_lag_plot_test
+
+purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+  geom_bar() +
+  scale_y_sqrt() +
+  xlim(-1, 15) +
+  facet_wrap(~customer_income, scale = "free_y")
+purchase_vehicle_year_lag_plot_test
+
+
+
+mean(vehicle_year_df$purchase_vehicle_year_lag)
+
+```
+
+```{r Random Forest for Future Purchase Prediction}
+
+#Create new dataset with predictor variables
+df2 <- df1 %>%
+  select(trade_in, vehicle_financing, customer_age, customer_income, customer_gender, customer_previous_purchase, customer_distance_to_dealer, vehicle_warranty_used, subsequent_purchases)
+
+#Convert classification variable to binary
+df2$subsequent_purchases[df2$subsequent_purchases > 0] <- 1
+
+#Check structure of dataset
+str(df2)
+
+#Prep dataset for model
+df2$trade_in <- as.factor(df2$trade_in)
+df2$vehicle_financing <- as.factor(df2$vehicle_financing)
+df2$customer_age <- as.factor(df2$customer_age)
+df2$customer_income <- as.factor(df2$customer_income)
+df2$customer_gender <- as.factor(df2$customer_gender)
+df2$customer_previous_purchase <- as.factor(df2$customer_previous_purchase)
+df2$customer_distance_to_dealer <- as.numeric(df2$customer_distance_to_dealer)
+df2$vehicle_warranty_used <- as.factor(df2$vehicle_warranty_used)
+df2$subsequent_purchases <- as.factor(df2$subsequent_purchases)
+
+#Use smaller sample for computing power purposes
+df2 <- df2 %>%
+  sample_frac(.01)
+
+
+#Create RF Model
+model <- randomForest(subsequent_purchases~., data=df2, proximity=TRUE)
+
+#Asess Model
+model
+
+#OOB error 34.16%
+
+#Plot Error Rates
+oob.error.data <- data.frame(
+  Trees=rep(1:nrow(model$err.rate), times=3),
+  Type=rep(c("OOB", 1, 0), each=nrow(model$err.rate)),
+  Error=c(model$err.rate[,"OOB"], 
+    model$err.rate[,'1'], 
+    model$err.rate[,'0']))
+
+ggplot(data=oob.error.data, aes(x=Trees, y=Error)) +
+  geom_line(aes(color=Type))
+
+
+
+
 
 
 ```
 
-```{r Random Forest}
+```{r Logistic Regression for Subsequent Purchases}
+reg_log_all <- glm(subsequent_purchases ~., data = df2, family = binomial)
+summary(reg_log_all)
 
+glm.probs <- predict(reg_log_all, type = "response")
+glm.pred <- ifelse(glm.probs >.5, 1, 0)
 
+table(glm.pred, df2$subsequent_purchases)
+mean(glm.pred == df2$subsequent_purchases)
+
+#Only 66.29% accuracy for all variables
+
+#Logistic Regression with just important ones
+reg_log2 <- glm(subsequent_purchases ~ trade_in + customer_age, data = df2, family = binomial)
+summary(reg_log2)
+
+glm.probs <- predict(reg_log2, type = "response")
+glm.pred <- ifelse(glm.probs >.5, 1, 0)
+
+table(glm.pred, df2$subsequent_purchases)
+mean(glm.pred == df2$subsequent_purchases)
 ```
 
-```{r Linear Regression}
-ols1 <- lm(subsequent_purchases ~ vehicle_financing + customer_gender, data=df1)
-summary(ols1)
-
-glm1 <- glm(subsequent_purchases ~ vehicle_financing + customer_gender, data=df1)
-summary(glm1)
-
-```
 
 
 
-```{r Logistic Regression}
 
-```
 
 
