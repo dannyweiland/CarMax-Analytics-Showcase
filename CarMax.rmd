@@ -28,6 +28,9 @@ library(corrplot)
 library(cowplot)
 library(randomForest)
 library(readxl)
+library(forcats)
+library(treemap)
+
 
 
 #Import Dataset
@@ -57,6 +60,17 @@ gender_table <- table(df1$customer_gender)
 gender_table_df <- as.data.frame(gender_table)
 gender_table_df <- rename(gender_table_df, customer_gender = Var1)
 
+#Gender PieChart
+GenderPie <- ggplot(gender_table_df, aes(x="", y=Freq, fill = customer_gender)) +
+  geom_bar(stat="identity", width = 1)+
+  coord_polar("y", start=0)+
+  theme_void()
+
+ggsave("GenderPie1.png")  
+
+
+
+
 #Barplot of Genders
 genderPlot1 <- ggplot(df1, aes(customer_gender, fill = customer_gender))+
   geom_bar() +
@@ -66,6 +80,39 @@ genderPlot1
 ggsave("genderPlot1.png")
 
 
+#Plot of customers by age
+df1 <- df1 %>% 
+  mutate(customer_age = fct_relevel(customer_age, c("0-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100", "101+")))
+
+
+agePlot1 <- ggplot(df1, aes(customer_age, fill = customer_age))+
+  geom_bar()+
+  theme_minimal()
+agePlot1
+ggsave("agePlot1.png")
+
+
+#Trying to visualize customer income
+#Unused Code
+.f = function() {
+#Plot of customers by income level
+df1 <- df1 %>%
+  mutate(customer_income = fct_relevel(customer_income, c("0 - 20000", "20001 - 40000", "40001 - 60000", "60001 - 80000", "80001 - 100000", "100001-120000", "120001 - 140000", "140001 - 160000", "160001 - 180000", "180001 - 200000",  "200001+")))
+
+#"0 - 20000", "20001 - 40000", "40001 - 60000", "60001 - 80000", "80001 - 100000", "100001-120000", "120001 - 140000", "140001 - 160000", "160001 - 180000" "180001 - 200000",  "200001+"
+
+incomePlot1 <- ggplot(df1, aes(customer_income, fill = customer_income))+
+  geom_bar() +
+  xlab("Income Bracket")+
+  theme_minimal()
+incomePlot1
+ggsave("genderPlot1.png")
+
+}
+
+
+
+
 #Most Common Combination of Age, Income, Gender
 #customer_combo_df <- df1 %>%
 #  select(customer_age, customer_income, customer_gender)
@@ -73,7 +120,6 @@ ggsave("genderPlot1.png")
 #customer_combo_df_collapsed <- apply(customer_combo_df, 1, paste, collapse='')
 
 #sort(table(customer_combo_df_collapsed), decreasing = T)
-
 
 ```
 
@@ -89,6 +135,9 @@ gender_model_data <- gender_model_data %>%
 gender_model_data$Percent.Male <- (gender_model_data$M/gender_model_data$Total.Gendered)
 gender_model_data$Percent.Female <- (gender_model_data$F/gender_model_data$Total.Gendered)
 
+write.csv(gender_model_data, "gender_model_data.csv")
+
+
 #Make Purchase Cont by Gender
 gender_make_data <- read_excel("CaseCompetitionData2021.1.xlsx", 
     sheet = "gender_make_data")
@@ -101,8 +150,10 @@ gender_make_data <- gender_make_data %>%
 gender_make_data$Percent.Male <- (gender_make_data$M/gender_make_data$Total.Gendered)
 gender_make_data$Percent.Female <- (gender_make_data$F/gender_make_data$Total.Gendered)
 
+write.csv(gender_make_data, "gender_make_data.csv")
 
 
+#Plotting Top 5 Models (by gender)
 
 ```
 
@@ -129,6 +180,19 @@ percent_sales_top_10
 manufacturer_graph <- ggplot(top10, aes(x=reorder(Var1, -Freq), y=Freq)) +
   geom_bar(stat = "identity")
 manufacturer_graph
+
+
+#Treemap of Make and Model
+treemap_df <- df1 %>%
+  count(purchase_make, purchase_model)
+
+MakeModelTreemap <- treemap(treemap_df,
+        index=c("purchase_make", "purchase_model"),
+        vSize="n",
+        type="index")
+ggsave("MakeModelTreemap.png")
+
+
 ```
 
 ```{r Post Purchase Satisfaction}
@@ -141,6 +205,9 @@ customer_satisfaction_num <- customer_satisfaction[,sapply(customer_satisfaction
 
 customer_satisfaction_cor <- cor(customer_satisfaction_num)
 corrplot(customer_satisfaction_cor)
+
+
+
 ```
 
 ```{r Vehicle Year Preferences: Vehicle LAG, warning=TRUE}
@@ -150,65 +217,57 @@ vehicle_year_df <- df1
 purchase_year <- 2013
 vehicle_year_df$purchase_vehicle_year_lag <- (purchase_year - vehicle_year_df$purchase_vehicle_year)
 
-#ggplot(data = vehicle_year_df, aes(y = purchase_vehicle_year_lag)) +
-#  geom_boxplot(outlier.shape = NA)
-
-
-#Horrendous code to make the boxplot look better, come back and fix this later
-vehicle_year_boxplot_df <- vehicle_year_df %>%
-  filter(purchase_vehicle_year_lag < 20)
-
-#Probably innaccurate boxplot
-boxplot(vehicle_year_boxplot_df$purchase_vehicle_year_lag)
 
 #Vehicle Purchase count by year chart
 purchase_vehicle_year_plot <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year)) +
   geom_bar() +
-  xlim(2000, 2014)
+  xlim(2000, 2014) +
+  theme_minimal() +
+  xlab("Year of Purchased Vehicle")
 purchase_vehicle_year_plot
 
-#Vehicle Purchase county by lag year
+ggsave("PurchaseVehicleYearPlot1.png")
+
+
+#Vehicle Purchase count by lag year
 purchase_vehicle_year_lag_plot <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
   geom_bar() +
   scale_y_sqrt() +
-  xlim(-1, 15)
+  theme_minimal()+
+  scale_x_reverse()+
+  xlim(15, -1)+
+  xlab("Age of Purchased Vehicle")
 purchase_vehicle_year_lag_plot
 
+ggsave("PurchaseVehicleYearLagPlot1.png")
 
-purchase_vehicle_year_lag_plot <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
-  geom_bar(aes(fill = customer_age)) +
-  scale_y_sqrt() +
-  xlim(-1, 15)
-  
-purchase_vehicle_year_lag_plot
 
-#Messing around testing different things
-purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+#Vehicle Age and Gender
+VehicleAgeGender <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
   geom_bar() +
   scale_y_sqrt() +
   xlim(-1, 15) +
   facet_wrap(~customer_gender)
-purchase_vehicle_year_lag_plot_test
+VehicleAgeGender
 
-purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+#Vehicle Age and Manufacturer
+VehicleAgeManufacturer <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
   geom_bar() +
   scale_y_sqrt() +
   xlim(-1, 10) +
   facet_wrap(~purchase_make, scale = "free_y")
+VehicleAgeManufacturer
 
-purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
-  geom_bar() +
-  scale_y_sqrt() +
-  xlim(-1, 15) +
-  facet_wrap(~customer_gender)
-purchase_vehicle_year_lag_plot_test
+ggsave("VehicleAgeManufacturer1.png")
 
-purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
+
+#Vehicle Age by Customer Age
+VehicleAgeCustomerAge <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
   geom_bar() +
   scale_y_sqrt() +
   xlim(-1, 15) +
   facet_wrap(~customer_age, scale = "free_y")
-purchase_vehicle_year_lag_plot_test
+VehicleAgeCustomerAge
 
 purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
   geom_bar() +
@@ -217,9 +276,8 @@ purchase_vehicle_year_lag_plot_test <- ggplot(vehicle_year_df, aes(x = purchase_
   facet_wrap(~customer_income, scale = "free_y")
 purchase_vehicle_year_lag_plot_test
 
-
-
 mean(vehicle_year_df$purchase_vehicle_year_lag)
+
 
 ```
 
@@ -270,11 +328,6 @@ oob.error.data <- data.frame(
 ggplot(data=oob.error.data, aes(x=Trees, y=Error)) +
   geom_line(aes(color=Type))
 
-
-
-
-
-
 ```
 
 ```{r Logistic Regression for Subsequent Purchases}
@@ -300,7 +353,17 @@ table(glm.pred, df2$subsequent_purchases)
 mean(glm.pred == df2$subsequent_purchases)
 ```
 
+```{r K Modes Clustering}
+#Age and Income
 
+
+
+
+
+
+
+
+```
 
 
 
