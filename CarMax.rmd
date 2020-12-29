@@ -54,7 +54,7 @@ df1 <- na.omit(df1)
 
 ```
 
-```{r Customer Research, echo=TRUE}
+```{r Customer Research, echo=FALSE}
 #customers by gender
 gender_table <- table(df1$customer_gender)
 gender_table_df <- as.data.frame(gender_table)
@@ -123,7 +123,7 @@ ggsave("genderPlot1.png")
 
 ```
 
-```{r Gender Sementation}
+```{r Gender Sementation, echo=FALSE}
 #Model Purchase Count by Gender
 gender_model_data <- read.csv("CaseCompetitionData2021.csv")
 gender_model_data[is.na(gender_model_data)] = 0
@@ -154,6 +154,21 @@ write.csv(gender_make_data, "gender_make_data.csv")
 
 
 #Plotting Top 5 Models (by gender)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```
 
@@ -255,6 +270,7 @@ VehicleAgeManufacturer <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_
   geom_bar() +
   scale_y_sqrt() +
   xlim(-1, 10) +
+  theme_void()+
   facet_wrap(~purchase_make, scale = "free_y")
 VehicleAgeManufacturer
 
