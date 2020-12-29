@@ -57,6 +57,15 @@ gender_table <- table(df1$customer_gender)
 gender_table_df <- as.data.frame(gender_table)
 gender_table_df <- rename(gender_table_df, customer_gender = Var1)
 
+#Barplot of Genders
+genderPlot1 <- ggplot(df1, aes(customer_gender, fill = customer_gender))+
+  geom_bar() +
+  xlab("Gender")+
+  theme_minimal()
+genderPlot1
+ggsave("genderPlot1.png")
+
+
 #Most Common Combination of Age, Income, Gender
 #customer_combo_df <- df1 %>%
 #  select(customer_age, customer_income, customer_gender)
