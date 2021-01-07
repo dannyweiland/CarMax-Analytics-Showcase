@@ -19,4 +19,4 @@ testData <- na.omit(testData)
 cd1 <- count(testData, purchase_make)
 
 #Create Wordcloud
-wordcloud(words=cd1$purchase_make, freq = cd1$n, min.freq = 3)
+wordcloud(words=cd1$purchase_make, freq = cd1$n, min.freq = 10)
