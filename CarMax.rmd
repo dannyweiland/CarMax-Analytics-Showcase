@@ -171,24 +171,6 @@ gender_make_data$Percent.Female <- (gender_make_data$F/gender_make_data$Total.Ge
 
 write.csv(gender_make_data, "gender_make_data.csv")
 
-
-#Plotting Top 5 Models (by gender)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ```
 
 ```{r Manufacturer Descriptive Statistics, echo=FALSE}

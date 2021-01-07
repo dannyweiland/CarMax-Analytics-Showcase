@@ -32,9 +32,16 @@ ggballoonplot(contingencyTable, fill = "value")+
 
 
 
+#Balloon Plot of Income and Purchase Price
+testData$purchase_price <- as.factor(testData$purchase_price)
 
 
+contingencyTable2 <- table(testData$purchase_price, testData$customer_income)
 
+contingencyTable2 <- as.data.frame(contingencyTable2)
+
+ggballoonplot(contingencyTable2, fill = "value")+
+  scale_fill_viridis_c(option = "C")
 
 
 
