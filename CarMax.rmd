@@ -14,11 +14,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ## CarMax Analytics Showcase
 
 ```{r Carmax Analytics Showcase Setup, message=FALSE, warning=FALSE, include=FALSE}
+
 #Clear workspace
 rm(list = ls())
 
+
 #Set working directory
 setwd("C:/Users/Danny/Desktop/CarMax-Analytics-Showcase")
+
 
 #Import Libraries
 library(dplyr)
@@ -34,7 +37,6 @@ library(ggpubr)
 library(tidyverse)
 
 
-
 #Import Dataset
 df1_raw <- read.csv("CaseCompetitionData2021Copy.csv")
 
@@ -45,52 +47,43 @@ df1_raw <- read.csv("CaseCompetitionData2021Copy.csv")
 #New Dataset for Cleaning and Analysis
 df1 <- df1_raw
 
+
 #Replacing ? Values with NA
 df1[df1=="?"]<- NA
 
-#Drop Columns 
+
+#The post purchase satisfaction column only had a few thousand responses.  I excluded this variable from my main dataset, and created a separate dataframe later in the project to analyze this variable.  
 df1 <- select(df1, -post_purchase_satisfaction)
-  
+
+
+#Omitting NA values only removed 14% of observations.     
 #Omit NA values
 df1 <- na.omit(df1)
 
 
-
-
-testData <- df1 %>%
-  mutate(customer_income = fct_relevel(customer_income, c("0 - 20000", "20001 - 40000", "40001 - 60000", "60001 - 80000", "80001 - 100000", "100001 - 120000", "120001 - 140000", "140001 - 160000", "160001 - 180000", "180001 - 200000",  "200001+"))) %>%
-  mutate(customer_income = fct_rev(customer_income)) %>%
-  arrange(customer_income) %>%
-  mutate(customer_age = fct_relevel(customer_age, c("0 - 20", "21 - 30", "31 - 40", "41 - 50", "51 - 60", "61 - 70", "71 - 80", "81 - 90", "101+"))) %>%
-  arrange(customer_age)
-
+#I changed the customer_income and customer_age variables from character to factor, and set the factor levels to #reflect the order of the values of the bins that they represent   
 df1 <- df1 %>%
   mutate(customer_income = fct_relevel(customer_income, c("0 - 20000", "20001 - 40000", "40001 - 60000", "60001 - 80000", "80001 - 100000", "100001 - 120000", "120001 - 140000", "140001 - 160000", "160001 - 180000", "180001 - 200000",  "200001+"))) %>%
   arrange(customer_income) %>%
-   mutate(customer_age = fct_relevel(customer_age, c("0 - 20", "21 - 30", "31 - 40", "41 - 50", "51 - 60", "61 - 70", "71 - 80", "81 - 90", "101+"))) %>%
+   mutate(customer_age = fct_relevel(customer_age, c("0 - 20", "21 - 30", "31 - 40", "41 - 50", "51 - 60", "61 - 70", "71 - 80", "81 - 90", "91 - 100", "101+"))) %>%
   arrange(customer_age)
-  
-
-
-
 
 ```
 
-```{r Customer Research, echo=FALSE}
-#customers by gender
+```{r Descriptive Statistics of Customer Population, echo=FALSE}
+
+#Here I created a table of the count of each gender within my processed dataset.
 gender_table <- table(df1$customer_gender)
 gender_table_df <- as.data.frame(gender_table)
 gender_table_df <- rename(gender_table_df, customer_gender = Var1)
+
 
 #Gender PieChart
 GenderPie <- ggplot(gender_table_df, aes(x="", y=Freq, fill = customer_gender)) +
   geom_bar(stat="identity", width = 1)+
   coord_polar("y", start=0)+
   theme_void()
-
 ggsave("GenderPie1.png")  
-
-
 
 
 #Barplot of Genders
@@ -99,37 +92,24 @@ genderPlot1 <- ggplot(df1, aes(customer_gender, fill = customer_gender))+
   xlab("Gender")+
   theme_minimal()
 genderPlot1
-ggsave("genderPlot1.png")
+ggsave("GenderPlot1.png")
 
 
-#Plot of customers by age
-df1 <- df1 %>% 
-  mutate(customer_age = fct_relevel(customer_age, c("0-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100", "101+")))
-
-
+#Barplot of Customer Ages
 agePlot1 <- ggplot(df1, aes(customer_age, fill = customer_age))+
   geom_bar()+
   theme_minimal()
 agePlot1
-ggsave("agePlot1.png")
+ggsave("AgePlot1.png")
 
 
-#Trying to visualize customer income
-#Plot of customers by income level
-df1 <- df1 %>%
-  mutate(customer_income = fct_relevel(customer_income, c("0 - 20000", "20001 - 40000", "40001 - 60000", "60001 - 80000", "80001 - 100000", "100001 - 120000", "120001 - 140000", "140001 - 160000", "160001 - 180000", "180001 - 200000",  "200001+"))) %>%
-  arrange(customer_income) 
-
-
+#Barplot of customer income
 incomePlot1 <- ggplot(df1, aes(customer_income, fill = customer_income))+
   geom_bar() +
   theme_void()+
   xlab("Income Bracket")
 incomePlot1
-ggsave("genderPlot1.png")
-
-
-
+ggsave("IncomePlot1.png")
 
 
 #Most Common Combination of Age, Income, Gender
@@ -143,37 +123,46 @@ ggsave("genderPlot1.png")
 ```
 
 ```{r Gender Sementation, echo=FALSE}
-#Model Purchase Count by Gender
-gender_model_data <- read.csv("CaseCompetitionData2021.csv")
+
+#Import CSV with the counts of Models by gender
+gender_model_data <- read.csv("ModelsByGender.csv")
 gender_model_data[is.na(gender_model_data)] = 0
 
-#Remove values with less than 20 to prevent inaccuracies
+
+#Remove values with less than 20 cases in order to maintain the integrity of this statistic
 gender_model_data <- gender_model_data %>%
   filter(Total.Gendered > 20)
 
+
+#Create a new variable showing the percent of each gender to identify extremes
 gender_model_data$Percent.Male <- (gender_model_data$M/gender_model_data$Total.Gendered)
 gender_model_data$Percent.Female <- (gender_model_data$F/gender_model_data$Total.Gendered)
 
+
+#Writing this dataframe to a csv, for future analysis and use in excel
 write.csv(gender_model_data, "gender_model_data.csv")
 
 
 #Make Purchase Cont by Gender
-gender_make_data <- read_excel("CaseCompetitionData2021.1.xlsx", 
-    sheet = "gender_make_data")
+gender_make_data <- read_excel("MakeByGender.xlsx")
 gender_make_data[is.na(gender_make_data)] = 0
+
 
 #Remove values with less than 20 to prevent inaccuracies
 gender_make_data <- gender_make_data %>%
   filter(Total.Gendered > 20)
 
+
 gender_make_data$Percent.Male <- (gender_make_data$M/gender_make_data$Total.Gendered)
 gender_make_data$Percent.Female <- (gender_make_data$F/gender_make_data$Total.Gendered)
+
 
 write.csv(gender_make_data, "gender_make_data.csv")
 
 ```
 
 ```{r Manufacturer Descriptive Statistics, echo=FALSE}
+
 #Averages
 mean(df1$trade_in)
 mean(df1$vehicle_financing)
@@ -197,36 +186,26 @@ manufacturer_graph <- ggplot(top10, aes(x=reorder(Var1, -Freq), y=Freq)) +
   geom_bar(stat = "identity")
 manufacturer_graph
 
-
-#Treemap of Make and Model
-treemap_df <- df1 %>%
-  count(purchase_make, purchase_model)
-
-MakeModelTreemap <- treemap(treemap_df,
-        index=c("purchase_make", "purchase_model"),
-        vSize="n",
-        type="index")
-ggsave("MakeModelTreemap.png")
-
-
 ```
 
 ```{r Post Purchase Satisfaction}
+
 customer_satisfaction <- df1_raw %>%
   replace_with_na(list(post_purchase_satisfaction = '?')) %>%
   mutate(post_purchase_satisfaction = as.numeric(post_purchase_satisfaction))%>%
   na.omit()
 
+
 customer_satisfaction_num <- customer_satisfaction[,sapply(customer_satisfaction, is.numeric)]
+
 
 customer_satisfaction_cor <- cor(customer_satisfaction_num)
 corrplot(customer_satisfaction_cor)
 
-
-
 ```
 
 ```{r Vehicle Year Preferences: Vehicle LAG, warning=TRUE}
+
 vehicle_year_df <- df1
 
 #Create new variable for "year lag", How many years old was the purchased vehicle?
@@ -373,15 +352,6 @@ table(glm.pred, df2$subsequent_purchases)
 mean(glm.pred == df2$subsequent_purchases)
 ```
 
-```{r Grouped Frequency Table}
-
-
-
-
-
-
-
-```
 
 
 
