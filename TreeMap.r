@@ -1,4 +1,5 @@
-#This is the code for the treemap visualization.  It relies on df1 from the main CarMax.rmd file 
+#This is the code for the treemap visualization.  It relies on df1 from the main CarMax.rmd file.
+#Simply run this code after the CarMax.rmd code.
 
 #Import treemap library
 library(treemap)
