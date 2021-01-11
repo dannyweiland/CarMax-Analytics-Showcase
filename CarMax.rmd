@@ -35,6 +35,7 @@ library(forcats)
 library(treemap)
 library(ggpubr)
 library(tidyverse)
+library(caret)
 
 
 #Import Dataset
@@ -65,8 +66,9 @@ df1 <- na.omit(df1)
 df1 <- df1 %>%
   mutate(customer_income = fct_relevel(customer_income, c("0 - 20000", "20001 - 40000", "40001 - 60000", "60001 - 80000", "80001 - 100000", "100001 - 120000", "120001 - 140000", "140001 - 160000", "160001 - 180000", "180001 - 200000",  "200001+"))) %>%
   arrange(customer_income) %>%
-   mutate(customer_age = fct_relevel(customer_age, c("0 - 20", "21 - 30", "31 - 40", "41 - 50", "51 - 60", "61 - 70", "71 - 80", "81 - 90", "91 - 100", "101+"))) %>%
-  arrange(customer_age)
+  mutate(customer_age = fct_relevel(customer_age, c("0 - 20", "21 - 30", "31 - 40", "41 - 50", "51 - 60", "61 - 70", "71 - 80", "81 - 90", "91 - 100", "101+"))) %>%
+  arrange(customer_age) %>%
+  mutate(purchase_price = fct_relevel(purchase_price, c("5001 - 10000",  "10001 - 15000", "15001 - 20000", "20001 - 25000", "25001 - 30000", "30001 - 35000", "35001 - 40000", "40001 - 45000", "45001 - 50000", "50001 - 55000", "55001 - 60000", "60001 - 65000", "65001 - 70000", "70001 - 75000", "75001 - 80000", "80001 - 85000", "85001 - 90000", "90001 - 95000")))
 
 ```
 
@@ -245,6 +247,8 @@ VehicleAgeGender <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) 
   facet_wrap(~customer_gender)
 VehicleAgeGender
 
+ggsave("AgeGenderLagPlot1.png")
+
 #Vehicle Age and Manufacturer
 VehicleAgeManufacturer <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
   geom_bar() +
@@ -265,6 +269,8 @@ VehicleAgeCustomerAge <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_l
   facet_wrap(~customer_age, scale = "free_y")
 VehicleAgeCustomerAge
 
+ggsave("CustomerAgeLagPlot1.png")
+
 #Vehicle Age by Customer Income
 VehicleAgeCustomerIncome <- ggplot(vehicle_year_df, aes(x = purchase_vehicle_year_lag)) +
   geom_bar() +
@@ -280,11 +286,25 @@ mean(vehicle_year_df$purchase_vehicle_year_lag)
 
 ```
 
+```{r Decision Tree for Subsequent Purchase}
+
+
+
+
+
+
+
+
+```
+
+
+
+
 ```{r Random Forest for Future Purchase Prediction}
 
 #Create new dataset with predictor variables
 df2 <- df1 %>%
-  select(trade_in, vehicle_financing, customer_age, customer_income, customer_gender, customer_previous_purchase, customer_distance_to_dealer, vehicle_warranty_used, subsequent_purchases)
+  select(purchase_price, trade_in, vehicle_financing, customer_age, customer_income, customer_gender, customer_previous_purchase, customer_distance_to_dealer, vehicle_warranty_used, subsequent_purchases)
 
 #Convert classification variable to binary
 df2$subsequent_purchases[df2$subsequent_purchases > 0] <- 1
@@ -304,17 +324,15 @@ df2$vehicle_warranty_used <- as.factor(df2$vehicle_warranty_used)
 df2$subsequent_purchases <- as.factor(df2$subsequent_purchases)
 
 #Use smaller sample for computing power purposes
-df2 <- df2 %>%
+df3 <- df2 %>%
   sample_frac(.01)
 
 
 #Create RF Model
-model <- randomForest(subsequent_purchases~., data=df2, proximity=TRUE)
+model <- randomForest(subsequent_purchases~., data=df3, proximity=TRUE)
 
 #Asess Model
 model
-
-#OOB error 34.16%
 
 #Plot Error Rates
 oob.error.data <- data.frame(
@@ -330,18 +348,21 @@ ggplot(data=oob.error.data, aes(x=Trees, y=Error)) +
 ```
 
 ```{r Logistic Regression for Subsequent Purchases}
+#Using Logistic Regression in an attempt to predict subsequent purchases
+
+#Building model with variables used in random forest
 reg_log_all <- glm(subsequent_purchases ~., data = df2, family = binomial)
 summary(reg_log_all)
 
+#Testing predicted vs actual values, then printing results
 glm.probs <- predict(reg_log_all, type = "response")
 glm.pred <- ifelse(glm.probs >.5, 1, 0)
 
 table(glm.pred, df2$subsequent_purchases)
 mean(glm.pred == df2$subsequent_purchases)
 
-#Only 66.29% accuracy for all variables
 
-#Logistic Regression with just important ones
+#Logistic Regression with trade in and customer age
 reg_log2 <- glm(subsequent_purchases ~ trade_in + customer_age, data = df2, family = binomial)
 summary(reg_log2)
 
@@ -350,8 +371,31 @@ glm.pred <- ifelse(glm.probs >.5, 1, 0)
 
 table(glm.pred, df2$subsequent_purchases)
 mean(glm.pred == df2$subsequent_purchases)
+
+#Trade in logistic reg
+reg_log3 <- glm(subsequent_purchases ~ trade_in, data = df2, family = binomial)
+summary(reg_log3)
+
+
 ```
 
+```{r Decision Tree}
+#Create training and testing datasets
+
+set.seed(123)
+trainIndex <- createDataPartition(df1$subsequent_purchases, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+
+df1Train <- df1[ trainIndex,]
+df1Test  <- df1[-trainIndex,]
+
+#Build Decision Tree
+fit <- rpart(subsequent_purchases~customer_gender, data = df1Train, method = 'class')
+rpart.plot(fit)
+
+
+```
 
 
 
