@@ -231,8 +231,7 @@ purchase_vehicle_year_lag_plot <- ggplot(vehicle_year_df, aes(x = purchase_vehic
   geom_bar() +
   scale_y_sqrt() +
   theme_minimal()+
-  scale_x_reverse()+
-  xlim(15, -1)+
+  xlim(-1, 15)+
   xlab("Age of Purchased Vehicle")
 purchase_vehicle_year_lag_plot
 
@@ -345,6 +344,17 @@ oob.error.data <- data.frame(
 ggplot(data=oob.error.data, aes(x=Trees, y=Error)) +
   geom_line(aes(color=Type))
 
+#Analyzing variable importance in Random Forest
+rfImp <- varImp(model, scale = TRUE)
+rfImp
+
+plot(rfImp)
+
+#Trying a different method for variable importance
+importance(model)
+
+
+
 ```
 
 ```{r Logistic Regression for Subsequent Purchases}
@@ -376,6 +386,12 @@ mean(glm.pred == df2$subsequent_purchases)
 reg_log3 <- glm(subsequent_purchases ~ trade_in, data = df2, family = binomial)
 summary(reg_log3)
 
+#Log Odds
+reg_log3$coefficients
+
+#Probabilities
+exp(reg_log3$coefficients)/(1+exp(reg_log3$coefficients))
+
 
 ```
 
@@ -394,6 +410,15 @@ df1Test  <- df1[-trainIndex,]
 fit <- rpart(subsequent_purchases~customer_gender, data = df1Train, method = 'class')
 rpart.plot(fit)
 
+
+```
+
+```{r Random Forest Second Try}
+
+
+set.seed(123)
+randomForest2 <- randomForest(subsequent_purchases ~., data = df2, proximity=TRUE)
+randomForest2
 
 ```
 
